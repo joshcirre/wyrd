@@ -303,7 +303,7 @@ new #[Layout('layouts::game')] class extends Component {
     {{-- Body --}}
     <div class="flex flex-1 overflow-hidden">
         {{-- Main --}}
-        <main class="flex flex-1 flex-col items-center justify-center overflow-y-auto p-8 lg:p-14">
+        <main class="flex flex-1 flex-col items-center justify-center overflow-hidden p-8 lg:p-14">
             @if ($questionId)
                 <div class="-mt-20 w-full max-w-3xl">
                     {{-- Question --}}
