@@ -10,13 +10,17 @@
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400..700&display=swap" rel="stylesheet" />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400..700&family=Lora:ital,wght@0,400..700;1,400..700&display=swap"
+            rel="stylesheet"
+        />
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+        @fluxAppearance
     </head>
 
-    <body class="min-h-screen bg-white text-zinc-900">
+    <body class="min-h-screen bg-stone-100 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
         <flux:main>
             {{ $slot }}
         </flux:main>
