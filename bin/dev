@@ -13,9 +13,10 @@ URL="http://localhost:$PORT"
 
 # Run all dev services with the determined port
 npx concurrently -k \
-    -c "#93c5fd,#c4b5fd,#fb7185,#fdba74" \
-    --names=server,queue,logs,vite \
+    -c "#93c5fd,#c4b5fd,#fb7185,#fdba74,#6ee7b7" \
+    --names=server,queue,logs,vite,reverb \
     "php artisan serve --port=$PORT" \
     "php artisan queue:listen --tries=1" \
     "php artisan pail" \
-    "bun run dev"
+    "bun run dev" \
+    "php artisan reverb:start"

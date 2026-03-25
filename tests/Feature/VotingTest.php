@@ -21,13 +21,13 @@ it('fetches a new question when none is active', function () {
     Http::fake([
         'api.truthordarebot.xyz/*' => Http::response([
             'id' => 'test-123',
-            'answers' => ['Eat pizza every day', 'Eat tacos every day'],
+            'question' => 'Would you rather eat pizza every day or eat tacos every day?',
         ]),
     ]);
 
     Livewire::test('pages::vote')
         ->assertOk()
-        ->assertSee('Eat pizza every day');
+        ->assertSee('eat pizza every day');
 });
 
 it('allows a user to vote once per question', function () {
@@ -63,7 +63,7 @@ it('prevents voting on an expired question', function () {
     Http::fake([
         'api.truthordarebot.xyz/*' => Http::response([
             'id' => 'new-123',
-            'answers' => ['Option A', 'Option B'],
+            'question' => 'Would you rather choose option A or choose option B?',
         ]),
     ]);
 

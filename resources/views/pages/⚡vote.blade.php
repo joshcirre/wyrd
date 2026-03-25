@@ -48,6 +48,7 @@ new #[Layout('layouts::game')] class extends Component {
             if ($current && now()->lt($current->expires_at)) {
                 // Not expired yet — sync the client with the real state
                 $this->loadQuestion($current);
+                $this->dispatch('timer-reset', expiresAt: $this->expiresAt);
 
                 return;
             }
@@ -65,6 +66,7 @@ new #[Layout('layouts::game')] class extends Component {
 
             if ($latest) {
                 $this->loadQuestion($latest);
+                $this->dispatch('timer-reset', expiresAt: $this->expiresAt);
             }
 
             return;
@@ -81,6 +83,7 @@ new #[Layout('layouts::game')] class extends Component {
 
             if ($recent) {
                 $this->loadQuestion($recent);
+                $this->dispatch('timer-reset', expiresAt: $this->expiresAt);
 
                 return;
             }
@@ -90,6 +93,7 @@ new #[Layout('layouts::game')] class extends Component {
             if ($question) {
                 $this->loadQuestion($question);
                 broadcast(new QuestionAdvanced($question));
+                $this->dispatch('timer-reset', expiresAt: $this->expiresAt);
             }
         } finally {
             $lock->release();
@@ -169,25 +173,41 @@ new #[Layout('layouts::game')] class extends Component {
             ->where('is_active', true)
             ->update(['is_active' => false]);
 
-        $response = Http::timeout(5)->get('https://api.truthordarebot.xyz/api/wyr', ['rating' => 'pg']);
+        $response = Http::timeout(5)
+            ->retry(3, 500)
+            ->get('https://api.truthordarebot.xyz/api/wyr', ['rating' => 'pg']);
 
         if (! $response->ok()) {
             return null;
         }
 
+        /** @var array{id?: string, question?: string} $data */
         $data = $response->json();
 
-        /** @var array{id?: string, question?: string, answers?: array<int, string>} $data */
-        $answers = $data['answers'] ?? [];
+        $raw = $data['question'] ?? '';
 
-        if (count($answers) < 2) {
+        // Strip "Would you rather " prefix and trailing "?"
+        $stripped = (string) preg_replace('/^would you rather\s+/i', '', $raw);
+        $stripped = mb_rtrim($stripped, '?');
+
+        // Split on the last occurrence of " or "
+        $lastOr = mb_strrpos($stripped, ' or ');
+
+        if ($lastOr === false) {
+            return null;
+        }
+
+        $option1 = mb_substr($stripped, 0, $lastOr);
+        $option2 = mb_substr($stripped, $lastOr + 4);
+
+        if ($option1 === '' || $option2 === '') {
             return null;
         }
 
         return Question::query()->create([
             'external_id' => $data['id'] ?? null,
-            'option1' => $answers[0],
-            'option2' => $answers[1],
+            'option1' => $option1,
+            'option2' => $option2,
             'expires_at' => now()->addSeconds(60),
             'is_active' => true,
         ]);
@@ -243,6 +263,9 @@ new #[Layout('layouts::game')] class extends Component {
         },
 
         tick() {
+            if (! this.expiresAt) {
+                return
+            }
             const diff = Math.ceil((new Date(this.expiresAt) - Date.now()) / 1000)
             this.secondsLeft = Math.max(0, diff)
 
