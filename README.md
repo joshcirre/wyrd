@@ -2,6 +2,8 @@
 
 A real-time "Would You Rather" voting game built with Laravel, Livewire 4, and broadcasting. Anonymous users vote on questions that auto-advance every 60 seconds, with live vote counts and viewer tracking synced across all connected browsers.
 
+UI heavily inspired by [Theo](https://x.com/theo)'s [quipslop.com](https://quipslop.com).
+
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset=".github/screenshots/vote-dark.png">
