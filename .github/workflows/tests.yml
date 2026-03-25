@@ -13,6 +13,9 @@ jobs:
         steps:
             - uses: actions/checkout@v4
 
+            - name: Install aspell
+              run: sudo apt-get install -y aspell
+
             - name: Setup PHP
               uses: shivammathur/setup-php@v2
               with:
