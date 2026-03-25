@@ -7,6 +7,11 @@
 
         <title>{{ config('app.name', 'Wyrd') }} — Would You Rather</title>
 
+        <link
+            rel="icon"
+            href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='16' fill='%23000'/><text x='50' y='76' font-size='72' font-family='system-ui' font-weight='700' fill='%23fff' text-anchor='middle'>?</text></svg>"
+        />
+
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -20,10 +25,8 @@
         @fluxAppearance
     </head>
 
-    <body class="min-h-screen bg-stone-100 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
-        <flux:main>
-            {{ $slot }}
-        </flux:main>
+    <body class="fixed inset-0 overflow-hidden bg-stone-100 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
+        {{ $slot }}
 
         @persist('toast')
             <flux:toast />
