@@ -149,6 +149,18 @@ new #[Layout('layouts::game')] class extends Component {
         $this->votesOption1 = (int) $data['votes_option1'];
         $this->votesOption2 = (int) $data['votes_option2'];
         $this->totalVotes = (int) $data['total_votes'];
+
+        if (! $this->hasVoted) {
+            $question = Question::find($this->questionId);
+            if ($question) {
+                $myVote = $question
+                    ->votes()
+                    ->where('voter_identifier', $this->voterIdentifier())
+                    ->first();
+                $this->hasVoted = (bool) $myVote;
+                $this->votedOption = $myVote?->option;
+            }
+        }
     }
 
     #[On('echo:voting,QuestionAdvanced')]
@@ -234,7 +246,7 @@ new #[Layout('layouts::game')] class extends Component {
 
     private function voterIdentifier(): string
     {
-        return hash('sha256', request()->ip() . (string) session()->getId());
+        return hash('sha256', (string) request()->ip());
     }
 };
 
@@ -242,31 +254,31 @@ new #[Layout('layouts::game')] class extends Component {
 
 <div
     x-data="{
-        expiresAt: @js($expiresAt),
-        secondsLeft: 60,
         timerInterval: null,
+        secondsLeft: 60,
         timerColor: 'text-emerald-400',
 
-        init() {
-            this.startTimer()
+        getExpiresAt() {
+            return $wire.expiresAt
+        },
 
-            $wire.on('timer-reset', ({ expiresAt }) => {
-                this.expiresAt = expiresAt
-                this.startTimer()
+        init() {
+            this.tick()
+            this.timerInterval = setInterval(() => this.tick(), 1000)
+
+            $wire.on('timer-reset', () => {
+                clearInterval(this.timerInterval)
+                this.timerInterval = setInterval(() => this.tick(), 1000)
+                this.tick()
             })
         },
 
-        startTimer() {
-            clearInterval(this.timerInterval)
-            this.tick()
-            this.timerInterval = setInterval(() => this.tick(), 1000)
-        },
-
         tick() {
-            if (! this.expiresAt) {
+            const expiresAt = this.getExpiresAt()
+            if (! expiresAt) {
                 return
             }
-            const diff = Math.ceil((new Date(this.expiresAt) - Date.now()) / 1000)
+            const diff = Math.ceil((new Date(expiresAt) - Date.now()) / 1000)
             this.secondsLeft = Math.max(0, diff)
 
             if (this.secondsLeft <= 10) {
@@ -305,8 +317,8 @@ new #[Layout('layouts::game')] class extends Component {
     </div>
 
     @if ($questionId)
-        {{-- Vote counts (shown after voting) --}}
-        @if ($hasVoted)
+        {{-- Vote counts (always visible once votes exist) --}}
+        @if ($totalVotes > 0)
             <div class="mb-6 w-full max-w-2xl px-4">
                 <div class="mb-1 flex items-center justify-between">
                     <span class="text-xs text-zinc-400">Option A</span>
