@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
 
-// Public routes
-Route::livewire('/', 'pages::dashboard')
-    ->middleware(['auth', 'verified'])
-    ->name('dashboard');
+// Anonymous voting game — no auth required
+Route::livewire('/', 'pages::vote')->name('vote');
 
-Route::livewire('/playground', 'pages::playground')
-    ->middleware(['auth', 'verified'])
-    ->name('playground');
+// Authenticated routes
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::livewire('/dashboard', 'pages::dashboard')->name('dashboard');
+    Route::livewire('/playground', 'pages::playground')->name('playground');
+});
 
 // Auth routes
 Route::middleware('guest')->group(function () {
@@ -26,12 +26,11 @@ Route::middleware(['auth'])->group(function () {
     Route::livewire('/profile', 'pages::profile.index')->name('profile.update');
 });
 
-// Email verification notice route
+// Email verification
 Route::get('/verify-email', function () {
     return view('auth.verify-email');
 })->middleware('auth')->name('verification.notice');
 
-// Email verification handler route
 Route::get('/verify-email/{id}/{hash}', function () {
-    // This will be handled by Laravel's built-in email verification
+    // Handled by Laravel's built-in email verification
 })->middleware(['auth', 'signed'])->name('verification.verify');

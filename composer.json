@@ -12,6 +12,7 @@
         "php": "^8.4",
         "laravel/framework": "^13.0",
         "laravel/prompts": "^0.3",
+        "laravel/reverb": "^1.0",
         "laravel/tinker": "^3.0",
         "livewire/blaze": "^1.0",
         "livewire/flux": "^2.0",
