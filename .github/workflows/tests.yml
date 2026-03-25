@@ -30,7 +30,8 @@ jobs:
                     composer config http-basic.composer.fluxui.dev "$FLUX_USERNAME" "$FLUX_LICENSE_KEY"
                   else
                     echo "Flux Pro credentials not available, removing dependency..."
-                    composer remove livewire/flux-pro --no-install --no-interaction --no-scripts
+                    composer config --unset repositories.flux-pro
+                    composer remove livewire/flux-pro --no-update --no-interaction --no-scripts
                   fi
 
             - name: Install Composer dependencies
@@ -58,4 +59,4 @@ jobs:
               run: bun run build
 
             - name: Run tests
-              run: ./vendor/bin/pest --parallel
+              run: composer test

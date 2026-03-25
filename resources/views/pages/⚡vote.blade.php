@@ -315,12 +315,17 @@ new #[Layout('layouts::game')] class extends Component {
         toggleDark() {
             this.darkMode = ! this.darkMode
             document.documentElement.classList.toggle('dark', this.darkMode)
-            localStorage.setItem('flux-appearance', this.darkMode ? 'dark' : 'light')
+            localStorage.setItem(
+                'flux-appearance',
+                this.darkMode ? 'dark' : 'light',
+            )
         },
 
         tick() {
             const expiresAt = this.getExpiresAt()
-            if (! expiresAt) { return }
+            if (! expiresAt) {
+                return
+            }
             const diff = Math.floor((new Date(expiresAt) - Date.now()) / 1000)
             this.secondsLeft = Math.max(0, diff)
 
@@ -338,14 +343,17 @@ new #[Layout('layouts::game')] class extends Component {
             @if ($questionId)
                 <span class="text-zinc-300 dark:text-zinc-600">·</span>
                 <span class="font-mono text-xs tracking-widest text-zinc-400 dark:text-zinc-500">
-                    ROUND <span class="text-zinc-700 dark:text-zinc-300">{{ $questionId }}</span>
+                    ROUND
+                    <span class="text-zinc-700 dark:text-zinc-300">{{ $questionId }}</span>
                 </span>
             @endif
         </div>
 
         @if ($questionId)
             <div class="font-mono text-xs tracking-widest text-zinc-400 dark:text-zinc-500">
-                VOTING <span class="tabular-nums text-zinc-900 dark:text-zinc-100" x-text="secondsLeft"></span>S
+                VOTING
+                <span class="text-zinc-900 tabular-nums dark:text-zinc-100" x-text="secondsLeft"></span>
+                S
             </div>
         @endif
 
@@ -363,7 +371,8 @@ new #[Layout('layouts::game')] class extends Component {
             <div class="flex items-center gap-2">
                 <span class="size-1.5 animate-pulse rounded-full bg-emerald-500"></span>
                 <span class="font-mono text-xs tracking-widest text-zinc-400 dark:text-zinc-500">
-                    <span class="text-zinc-700 dark:text-zinc-300">{{ $viewerCount }}</span> WATCHING
+                    <span class="text-zinc-700 dark:text-zinc-300">{{ $viewerCount }}</span>
+                    WATCHING
                 </span>
             </div>
         </div>
@@ -380,7 +389,6 @@ new #[Layout('layouts::game')] class extends Component {
 
     {{-- Body --}}
     <div class="flex flex-1 overflow-hidden">
-
         {{-- Main --}}
         <main class="flex flex-1 flex-col items-center justify-center overflow-y-auto p-8 lg:p-14">
             @if ($questionId)
@@ -388,14 +396,13 @@ new #[Layout('layouts::game')] class extends Component {
                     {{-- Question --}}
                     <div class="mb-10 border-l-4 border-amber-400 pl-6">
                         <p class="mb-3 font-mono text-[10px] tracking-[0.25em] text-zinc-400 dark:text-zinc-500">WOULD YOU RATHER</p>
-                        <h1 class="font-display text-4xl font-bold leading-snug text-zinc-900 dark:text-zinc-100 lg:text-5xl">
+                        <h1 class="font-display text-4xl leading-snug font-bold text-zinc-900 lg:text-5xl dark:text-zinc-100">
                             {{ ucfirst($option1) }} or {{ $option2 }}?
                         </h1>
                     </div>
 
                     {{-- Options --}}
                     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-
                         {{-- Option A --}}
                         <button
                             wire:click="vote(1)"
@@ -407,23 +414,25 @@ new #[Layout('layouts::game')] class extends Component {
                             ])
                         >
                             <p class="mb-3 font-mono text-[10px] tracking-[0.2em] text-blue-500">A</p>
-                            <p class="mb-6 text-xl font-semibold leading-snug text-zinc-900 dark:text-zinc-100">
+                            <p class="mb-6 text-xl leading-snug font-semibold text-zinc-900 dark:text-zinc-100">
                                 &ldquo;{{ ucfirst($option1) }}&rdquo;
                             </p>
                             <div>
                                 <div class="mb-1.5 flex justify-between font-mono text-[10px]">
                                     <span class="text-blue-500">{{ $votesOption1 }} VOTES</span>
-                                    <span class="text-zinc-400 dark:text-zinc-500">{{ $totalVotes > 0 ? round($votesOption1 / $totalVotes * 100) : 0 }}%</span>
+                                    <span class="text-zinc-400 dark:text-zinc-500">
+                                        {{ $totalVotes > 0 ? round(($votesOption1 / $totalVotes) * 100) : 0 }}%
+                                    </span>
                                 </div>
                                 <div class="h-px w-full bg-zinc-200 dark:bg-zinc-700">
                                     <div
                                         class="h-px bg-blue-500 transition-all duration-700"
-                                        style="width: {{ $totalVotes > 0 ? round($votesOption1 / $totalVotes * 100) : 0 }}%"
+                                        style="width: {{ $totalVotes > 0 ? round(($votesOption1 / $totalVotes) * 100) : 0 }}%"
                                     ></div>
                                 </div>
                             </div>
                             @if ($hasVoted && $votedOption === 1)
-                                <flux:icon name="check-circle" class="absolute right-4 top-4 size-4 text-blue-500" />
+                                <flux:icon name="check-circle" class="absolute top-4 right-4 size-4 text-blue-500" />
                             @endif
                         </button>
 
@@ -438,26 +447,25 @@ new #[Layout('layouts::game')] class extends Component {
                             ])
                         >
                             <p class="mb-3 font-mono text-[10px] tracking-[0.2em] text-emerald-600">B</p>
-                            <p class="mb-6 text-xl font-semibold leading-snug text-zinc-900 dark:text-zinc-100">
-                                &ldquo;{{ $option2 }}&rdquo;
-                            </p>
+                            <p class="mb-6 text-xl leading-snug font-semibold text-zinc-900 dark:text-zinc-100">&ldquo;{{ $option2 }}&rdquo;</p>
                             <div>
                                 <div class="mb-1.5 flex justify-between font-mono text-[10px]">
                                     <span class="text-emerald-600">{{ $votesOption2 }} VOTES</span>
-                                    <span class="text-zinc-400 dark:text-zinc-500">{{ $totalVotes > 0 ? round($votesOption2 / $totalVotes * 100) : 0 }}%</span>
+                                    <span class="text-zinc-400 dark:text-zinc-500">
+                                        {{ $totalVotes > 0 ? round(($votesOption2 / $totalVotes) * 100) : 0 }}%
+                                    </span>
                                 </div>
                                 <div class="h-px w-full bg-zinc-200 dark:bg-zinc-700">
                                     <div
                                         class="h-px bg-emerald-500 transition-all duration-700"
-                                        style="width: {{ $totalVotes > 0 ? round($votesOption2 / $totalVotes * 100) : 0 }}%"
+                                        style="width: {{ $totalVotes > 0 ? round(($votesOption2 / $totalVotes) * 100) : 0 }}%"
                                     ></div>
                                 </div>
                             </div>
                             @if ($hasVoted && $votedOption === 2)
-                                <flux:icon name="check-circle" class="absolute right-4 top-4 size-4 text-emerald-600" />
+                                <flux:icon name="check-circle" class="absolute top-4 right-4 size-4 text-emerald-600" />
                             @endif
                         </button>
-
                     </div>
 
                     @if ($totalVotes > 0)
@@ -469,14 +477,14 @@ new #[Layout('layouts::game')] class extends Component {
             @else
                 <div class="-mt-20 w-full max-w-3xl border-l-4 border-zinc-200 pl-6 dark:border-zinc-700">
                     <p class="mb-3 font-mono text-[10px] tracking-[0.25em] text-zinc-400 dark:text-zinc-500">WOULD YOU RATHER</p>
-                    <h1 class="font-display text-4xl font-bold text-zinc-300 dark:text-zinc-600 lg:text-5xl">Waiting for next round...</h1>
+                    <h1 class="font-display text-4xl font-bold text-zinc-300 lg:text-5xl dark:text-zinc-600">Waiting for next round...</h1>
                 </div>
             @endif
         </main>
 
         {{-- Right sidebar --}}
         <aside
-            class="hidden shrink-0 overflow-hidden border-l border-zinc-200 bg-white transition-all duration-300 dark:border-zinc-800 dark:bg-zinc-900 lg:flex lg:flex-col"
+            class="hidden shrink-0 overflow-hidden border-l border-zinc-200 bg-white transition-all duration-300 lg:flex lg:flex-col dark:border-zinc-800 dark:bg-zinc-900"
             :class="sidebarOpen ? 'w-80' : 'w-10'"
         >
             {{-- Toggle --}}
@@ -501,11 +509,18 @@ new #[Layout('layouts::game')] class extends Component {
                         $aWins = $past->votes1 > $past->votes2;
                         $bWins = $past->votes2 > $past->votes1;
                         $winner = $aWins ? $past->option1 : ($bWins ? $past->option2 : null);
-                        $winPct = $pastTotal > 0 ? round(max($past->votes1, $past->votes2) / $pastTotal * 100) : 0;
+                        $winPct = $pastTotal > 0 ? round((max($past->votes1, $past->votes2) / $pastTotal) * 100) : 0;
                     @endphp
-                    <div wire:key="past-{{ $past->id }}" class="mb-5 border-l-2 border-zinc-200 pl-3 transition-colors hover:border-zinc-400 dark:border-zinc-700 dark:hover:border-zinc-500">
+
+                    <div
+                        wire:key="past-{{ $past->id }}"
+                        class="mb-5 border-l-2 border-zinc-200 pl-3 transition-colors hover:border-zinc-400 dark:border-zinc-700 dark:hover:border-zinc-500"
+                    >
                         <p class="mb-1 font-mono text-[10px] text-zinc-400 dark:text-zinc-500">ROUND {{ $past->id }}</p>
-                        <p class="mb-1.5 line-clamp-2 text-xs leading-snug text-zinc-500 dark:text-zinc-400">{{ ucfirst($past->option1) }} or {{ $past->option2 }}?</p>
+                        <p class="mb-1.5 line-clamp-2 text-xs leading-snug text-zinc-500 dark:text-zinc-400">
+                            {{ ucfirst($past->option1) }} or {{ $past->option2 }}?
+                        </p>
+
                         @if ($winner)
                             <p class="truncate font-mono text-[10px] text-emerald-600">
                                 &uarr; {{ Str::limit($winner, 36) }} &middot; {{ $winPct }}%
@@ -521,6 +536,5 @@ new #[Layout('layouts::game')] class extends Component {
                 @endforelse
             </div>
         </aside>
-
     </div>
 </div>
