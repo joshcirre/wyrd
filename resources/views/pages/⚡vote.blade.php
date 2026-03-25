@@ -5,8 +5,11 @@ declare(strict_types=1);
 use App\Events\QuestionAdvanced;
 use App\Events\VoteUpdated;
 use App\Models\Question;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -21,10 +24,12 @@ new #[Layout('layouts::game')] class extends Component {
     public int $totalVotes = 0;
     public bool $hasVoted = false;
     public ?int $votedOption = null;
-    public bool $loading = false;
+    public int $viewerCount = 1;
 
     public function mount(): void
     {
+        $this->trackViewer();
+
         $question = Question::query()
             ->where('is_active', true)
             ->where('expires_at', '>', now())
@@ -38,6 +43,24 @@ new #[Layout('layouts::game')] class extends Component {
         if ($question) {
             $this->loadQuestion($question);
         }
+    }
+
+    public function refreshViewerCount(): void
+    {
+        $this->trackViewer();
+    }
+
+    /** @return Collection<int, Question> */
+    #[Computed]
+    public function history(): Collection
+    {
+        return Question::query()
+            ->where('is_active', false)
+            ->withCount(['votes as votes1' => fn ($q) => $q->where('option', 1)])
+            ->withCount(['votes as votes2' => fn ($q) => $q->where('option', 2)])
+            ->latest()
+            ->limit(20)
+            ->get();
     }
 
     public function advance(): void
@@ -244,6 +267,17 @@ new #[Layout('layouts::game')] class extends Component {
         $this->votedOption = $myVote?->option;
     }
 
+    private function trackViewer(): void
+    {
+        $ipHash = hash('sha256', (string) request()->ip());
+        $viewers = Cache::get('active_viewers', []);
+        $viewers[$ipHash] = now()->timestamp;
+        $cutoff = now()->subSeconds(90)->timestamp;
+        $viewers = array_filter($viewers, fn (int $ts) => $ts > $cutoff);
+        Cache::put('active_viewers', $viewers, now()->addMinutes(5));
+        $this->viewerCount = count($viewers);
+    }
+
     private function voterIdentifier(): string
     {
         return hash('sha256', (string) request()->ip());
@@ -256,7 +290,7 @@ new #[Layout('layouts::game')] class extends Component {
     x-data="{
         timerInterval: null,
         secondsLeft: 60,
-        timerColor: 'text-emerald-400',
+        timerColor: 'text-emerald-500',
 
         getExpiresAt() {
             return $wire.expiresAt
@@ -282,11 +316,11 @@ new #[Layout('layouts::game')] class extends Component {
             this.secondsLeft = Math.max(0, diff)
 
             if (this.secondsLeft <= 10) {
-                this.timerColor = 'text-red-400'
+                this.timerColor = 'text-red-500'
             } else if (this.secondsLeft <= 20) {
-                this.timerColor = 'text-amber-400'
+                this.timerColor = 'text-amber-500'
             } else {
-                this.timerColor = 'text-emerald-400'
+                this.timerColor = 'text-emerald-500'
             }
 
             if (this.secondsLeft <= 0) {
@@ -295,109 +329,170 @@ new #[Layout('layouts::game')] class extends Component {
             }
         },
     }"
-    class="flex min-h-screen flex-col items-center justify-center px-4 py-12"
+    class="flex h-screen flex-col bg-white"
 >
     {{-- Header --}}
-    <div class="mb-8 text-center">
-        <h1 class="text-4xl font-bold tracking-tight text-white">Would You Rather?</h1>
-        <p class="mt-2 text-zinc-400">Vote anonymously. New question every 60 seconds.</p>
-    </div>
+    <header class="flex shrink-0 items-center justify-between border-b border-zinc-200 px-6 py-3">
+        {{-- Logo --}}
+        <span class="font-mono text-sm font-bold tracking-widest text-zinc-900 uppercase">Wyrd</span>
 
-    {{-- Timer --}}
-    <div class="mb-8 flex flex-col items-center gap-1">
-        <span class="text-sm font-medium tracking-widest text-zinc-500 uppercase">Time remaining</span>
-        <span class="font-mono text-6xl font-bold tabular-nums" :class="timerColor" x-text="secondsLeft"></span>
-        <div class="mt-2 h-1.5 w-64 overflow-hidden rounded-full bg-zinc-800">
-            <div
-                class="h-full rounded-full transition-all duration-1000"
-                :class="timerColor.replace('text-', 'bg-')"
-                :style="`width: ${(secondsLeft / 60) * 100}%`"
-            ></div>
+        {{-- Live viewer count --}}
+        <div wire:poll.30s="refreshViewerCount" class="flex items-center gap-2">
+            <span class="size-2 animate-pulse rounded-full bg-green-500"></span>
+            <span class="font-mono text-xs font-semibold tracking-widest text-zinc-500 uppercase">
+                {{ $viewerCount }} {{ Str::plural('viewer', $viewerCount) }} watching
+            </span>
         </div>
+
+        {{-- Timer --}}
+        <div class="flex items-center gap-2">
+            <span class="font-mono text-xs tracking-widest text-zinc-400 uppercase">Next in</span>
+            <span class="w-8 font-mono text-sm font-bold tabular-nums" :class="timerColor" x-text="secondsLeft"></span>
+        </div>
+    </header>
+
+    {{-- Progress bar --}}
+    <div class="h-0.5 w-full shrink-0 bg-zinc-100">
+        <div
+            class="h-full transition-all duration-1000"
+            :class="timerColor.replace('text-', 'bg-')"
+            :style="`width: ${(secondsLeft / 60) * 100}%`"
+        ></div>
     </div>
 
-    @if ($questionId)
-        {{-- Vote counts (always visible once votes exist) --}}
-        @if ($totalVotes > 0)
-            <div class="mb-6 w-full max-w-2xl px-4">
-                <div class="mb-1 flex items-center justify-between">
-                    <span class="text-xs text-zinc-400">Option A</span>
-                    <span class="text-xs text-zinc-400">Option B</span>
+    {{-- Body --}}
+    <div class="flex min-h-0 flex-1">
+        {{-- Main content --}}
+        <main class="flex flex-1 flex-col overflow-y-auto px-8 py-10 lg:px-16">
+            @if ($questionId)
+                {{-- Label --}}
+                <p class="mb-5 font-mono text-xs font-semibold tracking-widest text-zinc-400 uppercase">Would you rather</p>
+
+                {{-- Full question with colored options --}}
+                <div class="mb-8 border-l-4 border-violet-300 pl-6">
+                    <p class="text-3xl leading-tight font-bold text-zinc-900">
+                        <span class="text-violet-600">{{ ucfirst($option1) }}</span>
+                        <span class="text-zinc-400">or</span>
+                        <span class="text-fuchsia-600">{{ $option2 }}</span>
+                        ?
+                    </p>
                 </div>
-                <div class="flex h-3 overflow-hidden rounded-full bg-zinc-800">
+
+                {{-- Vote bar --}}
+                @if ($totalVotes > 0)
                     @php
-                        $pct1 = $totalVotes > 0 ? round(($votesOption1 / $totalVotes) * 100) : 50;
-                        $pct2 = $totalVotes > 0 ? round(($votesOption2 / $totalVotes) * 100) : 50;
+                        $pct1 = round(($votesOption1 / $totalVotes) * 100);
+                        $pct2 = 100 - $pct1;
                     @endphp
 
-                    <div class="bg-violet-500 transition-all duration-500" style="width: {{ $pct1 }}%"></div>
-                    <div class="bg-fuchsia-500 transition-all duration-500" style="width: {{ $pct2 }}%"></div>
+                    <div class="mb-8">
+                        <div class="flex h-2 overflow-hidden rounded-full bg-zinc-100">
+                            <div class="bg-violet-400 transition-all duration-500" style="width: {{ $pct1 }}%"></div>
+                            <div class="bg-fuchsia-400 transition-all duration-500" style="width: {{ $pct2 }}%"></div>
+                        </div>
+                        <div class="mt-2 flex justify-between text-xs">
+                            <span class="font-semibold text-violet-600">{{ $pct1 }}% &middot; {{ $votesOption1 }} votes</span>
+                            <span class="text-zinc-400">{{ $totalVotes }} total</span>
+                            <span class="font-semibold text-fuchsia-600">{{ $pct2 }}% &middot; {{ $votesOption2 }} votes</span>
+                        </div>
+                    </div>
+                @endif
+
+                {{-- Option cards --}}
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    {{-- Option A --}}
+                    <button
+                        wire:click="vote(1)"
+                        @disabled($hasVoted)
+                        class="{{
+                            $hasVoted
+                                ? ($votedOption === 1
+                                    ? 'border-violet-300 bg-violet-50'
+                                    : 'border-zinc-100 bg-zinc-50 opacity-50')
+                                : 'cursor-pointer border-zinc-200 bg-white hover:border-violet-300 hover:bg-violet-50 active:scale-[0.98]'
+                        }} relative rounded-xl border p-6 text-left transition-all duration-200 focus:outline-none"
+                    >
+                        <div class="mb-3 flex items-center justify-between">
+                            <span class="font-mono text-xs font-semibold tracking-widest text-violet-500 uppercase">Option A</span>
+                            @if ($hasVoted && $votedOption === 1)
+                                <flux:badge color="violet" size="sm">Your vote</flux:badge>
+                            @endif
+                        </div>
+                        <p class="text-base leading-snug font-semibold text-zinc-900">{{ ucfirst($option1) }}</p>
+                    </button>
+
+                    {{-- Option B --}}
+                    <button
+                        wire:click="vote(2)"
+                        @disabled($hasVoted)
+                        class="{{
+                            $hasVoted
+                                ? ($votedOption === 2
+                                    ? 'border-fuchsia-300 bg-fuchsia-50'
+                                    : 'border-zinc-100 bg-zinc-50 opacity-50')
+                                : 'cursor-pointer border-zinc-200 bg-white hover:border-fuchsia-300 hover:bg-fuchsia-50 active:scale-[0.98]'
+                        }} relative rounded-xl border p-6 text-left transition-all duration-200 focus:outline-none"
+                    >
+                        <div class="mb-3 flex items-center justify-between">
+                            <span class="font-mono text-xs font-semibold tracking-widest text-fuchsia-500 uppercase">Option B</span>
+                            @if ($hasVoted && $votedOption === 2)
+                                <flux:badge color="fuchsia" size="sm">Your vote</flux:badge>
+                            @endif
+                        </div>
+                        <p class="text-base leading-snug font-semibold text-zinc-900">{{ $option2 }}</p>
+                    </button>
                 </div>
-                <div class="mt-1 flex justify-between">
-                    <span class="text-sm font-semibold text-violet-400">{{ $pct1 }}% ({{ $votesOption1 }})</span>
-                    <span class="text-sm text-zinc-500">{{ $totalVotes }} votes total</span>
-                    <span class="text-sm font-semibold text-fuchsia-400">{{ $pct2 }}% ({{ $votesOption2 }})</span>
+
+                <p class="mt-6 text-sm text-zinc-400">
+                    @if (! $hasVoted)
+                        Click a card to cast your anonymous vote
+                    @else
+                        Waiting for the next question&hellip;
+                    @endif
+                </p>
+            @else
+                <div class="flex items-center gap-3 text-zinc-400">
+                    <flux:icon.arrow-path class="size-5 animate-spin" />
+                    <span class="text-sm">Loading question&hellip;</span>
                 </div>
+            @endif
+        </main>
+
+        {{-- Right sidebar: past questions --}}
+        <aside class="hidden w-72 shrink-0 flex-col overflow-y-auto border-l border-zinc-200 bg-zinc-50 lg:flex">
+            <div class="sticky top-0 border-b border-zinc-200 bg-zinc-50 px-5 py-4">
+                <h2 class="font-mono text-xs font-semibold tracking-widest text-zinc-500 uppercase">Past Questions</h2>
             </div>
-        @endif
 
-        {{-- Option cards --}}
-        <div class="grid w-full max-w-2xl grid-cols-1 gap-4 sm:grid-cols-2">
-            {{-- Option 1 --}}
-            <button
-                wire:click="vote(1)"
-                @disabled($hasVoted)
-                class="group {{
-                    $hasVoted
-                        ? ($votedOption === 1
-                            ? 'cursor-default border-violet-500 bg-violet-500/10'
-                            : 'cursor-default border-zinc-700 bg-zinc-900 opacity-50')
-                        : 'cursor-pointer border-zinc-700 bg-zinc-900 hover:border-violet-500 hover:bg-violet-500/10 active:scale-95'
-                }} relative flex flex-col items-center justify-center rounded-2xl border p-8 text-center transition-all duration-200 focus:outline-none"
-            >
-                @if ($hasVoted && $votedOption === 1)
-                    <div class="absolute top-3 right-3">
-                        <flux:badge color="violet" size="sm">Your vote</flux:badge>
+            <div class="divide-y divide-zinc-100">
+                @forelse ($this->history as $pastQuestion)
+                    @php
+                        $total = $pastQuestion->votes1 + $pastQuestion->votes2;
+                        $winnerIsA = $pastQuestion->votes1 >= $pastQuestion->votes2;
+                        $winner = $winnerIsA ? $pastQuestion->option1 : $pastQuestion->option2;
+                        $winnerPct = $total > 0 ? round((max($pastQuestion->votes1, $pastQuestion->votes2) / $total) * 100) : null;
+                    @endphp
+
+                    <div class="px-5 py-4">
+                        <p class="mb-2 line-clamp-2 text-xs leading-snug text-zinc-600">
+                            {{ ucfirst($pastQuestion->option1) }} or {{ $pastQuestion->option2 }}?
+                        </p>
+
+                        @if ($total > 0)
+                            <div class="flex items-baseline gap-1.5">
+                                <span class="{{ $winnerIsA ? 'text-violet-600' : 'text-fuchsia-600' }} text-xs font-bold">{{ $winnerPct }}%</span>
+                                <span class="line-clamp-1 text-xs text-zinc-500">{{ $winner }}</span>
+                            </div>
+                        @else
+                            <span class="text-xs text-zinc-400">No votes</span>
+                        @endif
                     </div>
-                @endif
-
-                <span class="mb-3 text-xs font-semibold tracking-widest text-violet-400 uppercase">Option A</span>
-                <p class="text-lg leading-snug font-semibold text-white">{{ $option1 }}</p>
-            </button>
-
-            {{-- Divider --}}
-            {{-- Option 2 --}}
-            <button
-                wire:click="vote(2)"
-                @disabled($hasVoted)
-                class="group {{
-                    $hasVoted
-                        ? ($votedOption === 2
-                            ? 'cursor-default border-fuchsia-500 bg-fuchsia-500/10'
-                            : 'cursor-default border-zinc-700 bg-zinc-900 opacity-50')
-                        : 'cursor-pointer border-zinc-700 bg-zinc-900 hover:border-fuchsia-500 hover:bg-fuchsia-500/10 active:scale-95'
-                }} relative flex flex-col items-center justify-center rounded-2xl border p-8 text-center transition-all duration-200 focus:outline-none"
-            >
-                @if ($hasVoted && $votedOption === 2)
-                    <div class="absolute top-3 right-3">
-                        <flux:badge color="fuchsia" size="sm">Your vote</flux:badge>
+                @empty
+                    <div class="px-5 py-10 text-center">
+                        <p class="text-xs text-zinc-400">No past questions yet</p>
                     </div>
-                @endif
-
-                <span class="mb-3 text-xs font-semibold tracking-widest text-fuchsia-400 uppercase">Option B</span>
-                <p class="text-lg leading-snug font-semibold text-white">{{ $option2 }}</p>
-            </button>
-        </div>
-
-        @if (! $hasVoted)
-            <p class="mt-6 text-sm text-zinc-500">Click a card to cast your anonymous vote</p>
-        @else
-            <p class="mt-6 text-sm text-zinc-500">Waiting for the next question...</p>
-        @endif
-    @else
-        <div class="flex items-center gap-3 text-zinc-400">
-            <flux:icon.arrow-path class="size-5 animate-spin" />
-            <span>Loading question...</span>
-        </div>
-    @endif
+                @endforelse
+            </div>
+        </aside>
+    </div>
 </div>

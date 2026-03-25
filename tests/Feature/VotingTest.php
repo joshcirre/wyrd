@@ -27,7 +27,7 @@ it('fetches a new question when none is active', function () {
 
     Livewire::test('pages::vote')
         ->assertOk()
-        ->assertSee('eat pizza every day');
+        ->assertSee('Eat pizza every day');
 });
 
 it('allows a user to vote once per question', function () {
