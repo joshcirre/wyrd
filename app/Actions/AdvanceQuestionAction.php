@@ -69,7 +69,7 @@ final readonly class AdvanceQuestionAction
 
         $raw = $data['question'] ?? '';
 
-        $stripped = (string) preg_replace('/^would you rather\s+/i', '', $raw);
+        $stripped = (string) preg_replace('/^.*would you rather\s+/i', '', $raw);
         $stripped = mb_rtrim($stripped, '?');
 
         $lastOr = mb_strrpos($stripped, ' or ');
