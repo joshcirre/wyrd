@@ -1,128 +1,80 @@
+# Wyrd
+
+A real-time "Would You Rather" voting game built with Laravel, Livewire 4, and broadcasting. Anonymous users vote on questions that auto-advance every 60 seconds, with live vote counts and viewer tracking synced across all connected browsers.
+
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/7f3c77b9-e549-4887-872e-a0d512678945">
-    <source media="(prefers-color-scheme: light)" srcset="https://github.com/user-attachments/assets/8cf172b8-0e36-47c4-b096-a6fad0044e32">
-    <img alt="Fission Logo" src="https://github.com/user-attachments/assets/fd074588-4ffd-47f3-af6e-a24500ecbc55">
+    <source media="(prefers-color-scheme: dark)" srcset=".github/screenshots/vote-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset=".github/screenshots/vote-light.png">
+    <img alt="Wyrd — Would You Rather voting game" src=".github/screenshots/vote-light.png" width="700">
   </picture>
 </p>
 
-> [!IMPORTANT]
-> This is an opinionated starter kit created by me (Josh Cirre) using Laravel Livewire and Livewire Flux. While PRs are welcome, this is designed to fit the needs of one person.
+## How It Works
 
-> [!TIP]
-> Clone the repository and run `composer setup` to get started quickly. See [Installation](#installation) below.
+1. A "Would You Rather" question is fetched from an external API and displayed to all connected users
+2. Anyone can vote for Option A or Option B — no account required (votes are tracked by IP hash)
+3. Vote counts and percentages update in real-time across all browsers via WebSocket events
+4. After 60 seconds, the question auto-advances and a new round begins
+5. Past rounds and their results are shown in a collapsible sidebar
 
-## TweakFlux — Deep Theming for Flux UI
+### Real-Time Architecture
 
-Fission pairs well with [**TweakFlux**](https://github.com/joshcirre/tweakflux), a theming package that lets you transform every Flux component with a single command. Override Tailwind v4 CSS custom properties to apply 20+ preset themes or generate your own — zero vendor files touched.
+The app uses Laravel's event broadcasting with two key events:
 
-```bash
-composer global require joshcirre/tweakflux
-tweakflux apply bubblegum
-```
+- **`VoteUpdated`** — broadcast whenever someone votes, instantly updating totals for all viewers
+- **`QuestionAdvanced`** — broadcast when the timer expires, triggering all clients to load the new question
 
-<p align="center">
-  <img src="art/tweakflux-preview.jpeg" alt="TweakFlux Bubblegum theme preview" width="700">
-</p>
+A cache lock prevents race conditions when multiple users trigger question advancement simultaneously. Active viewer count is tracked via Redis cache with 90-second TTL, polled every 30 seconds.
 
-## Why Does This Exist?
+## Stack
 
-Up until Livewire Flux released, I used Breeze as a starting point for 99% of new projects that I would create. Typically, those new projects were built for demos on videos or starting points for tutorials. In addition, I would start side projects or app ideas with Breeze, as well.
-
-Eventually I knew I wanted to create my own starting kit that worked well for what I needed in most scenarios. Authentication and a dashboard where I can start writing code.
-
-Once Livewire Flux released, it was the perfect time to make this happen.
-
-## Flux License Required
-
-A license for Flux (technically, "Flux Pro") is required to use Fission. Fission does not contain any of Flux's CSS, built CSS, or Blade components. However, if you do not have a license there are only two components used in the Flux Pro version (Toast and Card). Feel free to remove them from the starter kit.
+- **Laravel 12** with PHP 8.4+
+- **Livewire 4** single-file components with `#[On('echo:...')]` listeners
+- **Livewire Flux Pro** for UI components
+- **Alpine.js** for client-side countdown timer and dark mode toggle
+- **Tailwind CSS v4** with full dark mode support
+- **SQLite** database
+- **Laravel Echo** + WebSocket broadcasting for real-time sync
 
 ## Installation
 
-### Quick Start (Recommended)
-
 ```bash
-git clone https://github.com/joshcirre/fission.git my-project
-cd my-project
+git clone https://github.com/joshcirre/wyrd.git
+cd wyrd
 composer setup
 ```
 
-### Using Composer Create-Project
-
-```bash
-composer create-project joshcirre/fission my-project
-cd my-project
-composer setup
-```
-
-> [!NOTE]
-> The `laravel new --using` flag is not recommended due to archive extraction issues with special characters in filenames.
-
-The `composer setup` command handles:
-
-- Dependency installation
-- Environment configuration (.env)
-- Application key generation
-- SQLite database creation
-- Flux Pro credential setup
-- Database migrations
-- Project name configuration
-- NPM dependency installation
-- Asset building
+The `composer setup` command handles dependency installation, environment config, database creation, migrations, and asset building.
 
 ## Development
 
 ```bash
-composer dev          # Start server, queue, logs, and Vite
+composer run dev       # Start server, queue, logs, and Vite
 ```
 
 ### Code Quality
 
-Fission enforces strict code quality through automated tooling:
-
 ```bash
-composer fix          # Fix everything: types, refactoring, formatting
-composer test         # Run all checks: tests, linting, types, refactoring
+composer fix           # Fix everything: types, refactoring, formatting
+composer test          # Run all checks: typos, tests, linting, types, refactoring
 ```
 
-| Command             | Purpose                                              |
-| ------------------- | ---------------------------------------------------- |
-| `composer fix`      | PHPStan → Rector → Prettier → Pint                   |
-| `composer test`     | Typos → Pest → Lint check → PHPStan → Rector dry-run |
-| `composer lint`     | Pint + Prettier (quick format)                       |
-| `composer refactor` | Rector only                                          |
+| Command              | Purpose                                              |
+| -------------------- | ---------------------------------------------------- |
+| `composer test:unit` | Pest tests (parallel)                                |
+| `composer test:types`| PHPStan analysis (max level)                         |
+| `composer test:lint` | Check formatting (Pint + Prettier)                   |
+| `composer test:refactor` | Rector dry-run                                   |
 
-### Individual Test Commands
+## Flux Pro License
+
+A [Flux Pro](https://fluxui.dev) license is required. The app uses Flux components for icons, cards, and UI elements. Configure your credentials during `composer setup` or manually:
 
 ```bash
-composer test:unit          # Pest tests (parallel)
-composer test:unit:coverage # Pest with coverage
-composer test:types         # PHPStan analysis
-composer test:lint          # Check formatting (no fix)
-composer test:refactor      # Rector dry-run
-composer test:typos         # Peck typo checker
+composer config http-basic.composer.fluxui.dev your-email your-license-key
 ```
-
-### Tooling Stack
-
-- **[Pest](https://pestphp.com)** - Testing framework
-- **[PHPStan](https://phpstan.org)** + Larastan - Static analysis (max level)
-- **[Rector](https://getrector.com)** - Automated refactoring
-- **[Pint](https://laravel.com/docs/pint)** - PHP code style (strict Laravel)
-- **[Prettier](https://prettier.io)** - JS/CSS formatting
-- **[Peck](https://github.com/peckphp/peck)** - Typo detection
-
-## Recommended AI Skills
-
-If you use [AI coding assistants](https://skills.sh) with this project, these skills provide useful context for the stack:
-
-| Skill | Install |
-|-------|---------|
-| **Flux UI Development** — Flux UI component usage, variants, and patterns | `npx skills add laravel/boost --skill fluxui-development` |
-| **Livewire Development** — Livewire 4 component patterns, directives, islands, and testing | `npx skills add spatie/freek.dev@livewire-development` |
-| **TweakFlux Theme Generator** — Generate custom Flux UI themes from descriptions or palettes | `tweakflux boost` (requires [joshcirre/tweakflux](https://github.com/joshcirre/tweakflux)) |
-| **Playwriter** — Control your actual Chrome browser from AI agents (requires [Chrome extension](https://playwriter.dev)) | Included in `.agents/skills/` · CLI: `npm i -g playwriter` |
 
 ## License
 
-The Fission starter kit is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).

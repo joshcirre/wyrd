@@ -2,13 +2,11 @@
 
 declare(strict_types=1);
 
-use App\Events\QuestionAdvanced;
+use App\Actions\AdvanceQuestionAction;
 use App\Events\VoteUpdated;
 use App\Models\Question;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
@@ -26,7 +24,7 @@ new #[Layout('layouts::game')] class extends Component {
     public ?int $votedOption = null;
     public int $viewerCount = 1;
 
-    public function mount(): void
+    public function mount(AdvanceQuestionAction $advanceQuestion): void
     {
         $this->trackViewer();
 
@@ -37,7 +35,7 @@ new #[Layout('layouts::game')] class extends Component {
             ->first();
 
         if (! $question) {
-            $question = $this->fetchNewQuestion();
+            $question = $advanceQuestion->handle();
         }
 
         if ($question) {
@@ -63,7 +61,7 @@ new #[Layout('layouts::game')] class extends Component {
             ->get();
     }
 
-    public function advance(): void
+    public function advance(AdvanceQuestionAction $advanceQuestion): void
     {
         // Only advance if the current question has expired or there's no question
         if ($this->questionId) {
@@ -77,49 +75,11 @@ new #[Layout('layouts::game')] class extends Component {
             }
         }
 
-        $lock = Cache::lock('question-advance', 15);
+        $question = $advanceQuestion->handle();
 
-        if (! $lock->get()) {
-            // Another request is already advancing — wait briefly then load whatever was created
-            usleep(500_000);
-            $latest = Question::query()
-                ->where('is_active', true)
-                ->latest()
-                ->first();
-
-            if ($latest) {
-                $this->loadQuestion($latest);
-                $this->dispatch('timer-reset', expiresAt: $this->expiresAt);
-            }
-
-            return;
-        }
-
-        try {
-            // Double-check: did another process already create a new question?
-            $recent = Question::query()
-                ->where('is_active', true)
-                ->where('expires_at', '>', now())
-                ->where('created_at', '>', now()->subSeconds(5))
-                ->latest()
-                ->first();
-
-            if ($recent) {
-                $this->loadQuestion($recent);
-                $this->dispatch('timer-reset', expiresAt: $this->expiresAt);
-
-                return;
-            }
-
-            $question = $this->fetchNewQuestion();
-
-            if ($question) {
-                $this->loadQuestion($question);
-                broadcast(new QuestionAdvanced($question));
-                $this->dispatch('timer-reset', expiresAt: $this->expiresAt);
-            }
-        } finally {
-            $lock->release();
+        if ($question) {
+            $this->loadQuestion($question);
+            $this->dispatch('timer-reset', expiresAt: $this->expiresAt);
         }
     }
 
@@ -199,53 +159,6 @@ new #[Layout('layouts::game')] class extends Component {
             $this->loadQuestion($question);
             $this->dispatch('timer-reset', expiresAt: $data['expires_at']);
         }
-    }
-
-    private function fetchNewQuestion(): ?Question
-    {
-        // Deactivate all active questions
-        Question::query()
-            ->where('is_active', true)
-            ->update(['is_active' => false]);
-
-        $response = Http::timeout(5)
-            ->retry(3, 500)
-            ->get('https://api.truthordarebot.xyz/api/wyr', ['rating' => 'pg']);
-
-        if (! $response->ok()) {
-            return null;
-        }
-
-        /** @var array{id?: string, question?: string} $data */
-        $data = $response->json();
-
-        $raw = $data['question'] ?? '';
-
-        // Strip "Would you rather " prefix and trailing "?"
-        $stripped = (string) preg_replace('/^would you rather\s+/i', '', $raw);
-        $stripped = mb_rtrim($stripped, '?');
-
-        // Split on the last occurrence of " or "
-        $lastOr = mb_strrpos($stripped, ' or ');
-
-        if ($lastOr === false) {
-            return null;
-        }
-
-        $option1 = mb_substr($stripped, 0, $lastOr);
-        $option2 = mb_substr($stripped, $lastOr + 4);
-
-        if ($option1 === '' || $option2 === '') {
-            return null;
-        }
-
-        return Question::query()->create([
-            'external_id' => $data['id'] ?? null,
-            'option1' => $option1,
-            'option2' => $option2,
-            'expires_at' => now()->addSeconds(60),
-            'is_active' => true,
-        ]);
     }
 
     private function loadQuestion(Question $question): void
