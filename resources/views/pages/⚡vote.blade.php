@@ -250,11 +250,11 @@ new #[Layout('layouts::game')] class extends Component {
     }"
 >
     {{-- Top bar --}}
-    <header class="flex shrink-0 items-center justify-between border-b border-zinc-200 bg-white px-6 py-3 dark:border-zinc-800 dark:bg-zinc-900">
-        <div class="flex items-center gap-4">
-            <span class="font-mono text-xs font-bold tracking-[0.2em] text-zinc-700 dark:text-zinc-300">WYRD</span>
+    <header class="flex shrink-0 items-center justify-between border-b border-zinc-200 bg-white px-3 py-2 sm:px-6 sm:py-3 dark:border-zinc-800 dark:bg-zinc-900">
+        <div class="flex min-w-0 items-center gap-2 sm:gap-4">
+            <span class="hidden font-mono text-xs font-bold tracking-[0.2em] text-zinc-700 sm:inline dark:text-zinc-300">WYRD</span>
             @if ($questionId)
-                <span class="text-zinc-300 dark:text-zinc-600">·</span>
+                <span class="hidden text-zinc-300 sm:inline dark:text-zinc-600">·</span>
                 <span class="font-mono text-xs tracking-widest text-zinc-400 dark:text-zinc-500">
                     ROUND
                     <span class="text-zinc-700 dark:text-zinc-300">{{ $questionId }}</span>
@@ -270,7 +270,7 @@ new #[Layout('layouts::game')] class extends Component {
             </div>
         @endif
 
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2 sm:gap-3">
             {{-- Dark mode toggle --}}
             <button
                 @click="toggleDark()"
@@ -281,12 +281,10 @@ new #[Layout('layouts::game')] class extends Component {
                 <flux:icon name="moon" class="size-4" x-show="! darkMode" />
             </button>
 
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-1.5">
                 <span class="size-1.5 animate-pulse rounded-full bg-emerald-500"></span>
-                <span class="font-mono text-xs tracking-widest text-zinc-400 dark:text-zinc-500">
-                    <span class="text-zinc-700 dark:text-zinc-300">{{ $viewerCount }}</span>
-                    WATCHING
-                </span>
+                <span class="font-mono text-xs tabular-nums text-zinc-700 dark:text-zinc-300">{{ $viewerCount }}</span>
+                <span class="hidden font-mono text-xs tracking-widest text-zinc-400 sm:inline dark:text-zinc-500">WATCHING</span>
             </div>
         </div>
     </header>
@@ -303,31 +301,31 @@ new #[Layout('layouts::game')] class extends Component {
     {{-- Body --}}
     <div class="flex flex-1 overflow-hidden">
         {{-- Main --}}
-        <main class="flex flex-1 flex-col items-center justify-center overflow-hidden p-8 lg:p-14">
+        <main class="flex flex-1 flex-col items-center justify-center overflow-hidden p-4 sm:p-8 lg:p-14">
             @if ($questionId)
-                <div class="-mt-20 w-full max-w-3xl">
+                <div class="-mt-10 w-full max-w-3xl sm:-mt-20">
                     {{-- Question --}}
-                    <div class="mb-10 border-l-4 border-amber-400 pl-6">
-                        <p class="mb-3 font-mono text-[10px] tracking-[0.25em] text-zinc-400 dark:text-zinc-500">WOULD YOU RATHER</p>
-                        <h1 class="font-display text-4xl leading-snug font-bold text-zinc-900 lg:text-5xl dark:text-zinc-100">
+                    <div class="mb-6 border-l-4 border-amber-400 pl-4 sm:mb-10 sm:pl-6">
+                        <p class="mb-2 font-mono text-[10px] tracking-[0.25em] text-zinc-400 sm:mb-3 dark:text-zinc-500">WOULD YOU RATHER</p>
+                        <h1 class="font-display text-2xl leading-snug font-bold text-zinc-900 sm:text-4xl lg:text-5xl dark:text-zinc-100">
                             {{ ucfirst($option1) }} or {{ $option2 }}?
                         </h1>
                     </div>
 
                     {{-- Options --}}
-                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
                         {{-- Option A --}}
                         <button
                             wire:click="vote(1)"
                             @class([
-                                'group relative border-l-4 p-6 text-left transition-all duration-200',
+                                'group relative border-l-4 p-4 text-left transition-all duration-200 sm:p-6',
                                 'cursor-pointer border-blue-500 bg-white shadow-sm hover:bg-zinc-50 dark:bg-zinc-900 dark:hover:bg-zinc-800' => ! $hasVoted,
                                 'cursor-default border-blue-500 bg-white shadow-sm dark:bg-zinc-900' => $hasVoted && $votedOption === 1,
                                 'cursor-default border-zinc-200 bg-zinc-50 opacity-50 dark:border-zinc-700 dark:bg-zinc-800/50' => $hasVoted && $votedOption !== 1,
                             ])
                         >
-                            <p class="mb-3 font-mono text-[10px] tracking-[0.2em] text-blue-500">A</p>
-                            <p class="mb-6 text-xl leading-snug font-semibold text-zinc-900 dark:text-zinc-100">
+                            <p class="mb-2 font-mono text-[10px] tracking-[0.2em] text-blue-500 sm:mb-3">A</p>
+                            <p class="mb-4 text-base leading-snug font-semibold text-zinc-900 sm:mb-6 sm:text-xl dark:text-zinc-100">
                                 &ldquo;{{ ucfirst($option1) }}&rdquo;
                             </p>
                             <div>
@@ -353,14 +351,14 @@ new #[Layout('layouts::game')] class extends Component {
                         <button
                             wire:click="vote(2)"
                             @class([
-                                'group relative border-l-4 p-6 text-left transition-all duration-200',
+                                'group relative border-l-4 p-4 text-left transition-all duration-200 sm:p-6',
                                 'cursor-pointer border-emerald-500 bg-white shadow-sm hover:bg-zinc-50 dark:bg-zinc-900 dark:hover:bg-zinc-800' => ! $hasVoted,
                                 'cursor-default border-emerald-500 bg-white shadow-sm dark:bg-zinc-900' => $hasVoted && $votedOption === 2,
                                 'cursor-default border-zinc-200 bg-zinc-50 opacity-50 dark:border-zinc-700 dark:bg-zinc-800/50' => $hasVoted && $votedOption !== 2,
                             ])
                         >
-                            <p class="mb-3 font-mono text-[10px] tracking-[0.2em] text-emerald-600">B</p>
-                            <p class="mb-6 text-xl leading-snug font-semibold text-zinc-900 dark:text-zinc-100">&ldquo;{{ $option2 }}&rdquo;</p>
+                            <p class="mb-2 font-mono text-[10px] tracking-[0.2em] text-emerald-600 sm:mb-3">B</p>
+                            <p class="mb-4 text-base leading-snug font-semibold text-zinc-900 sm:mb-6 sm:text-xl dark:text-zinc-100">&ldquo;{{ $option2 }}&rdquo;</p>
                             <div>
                                 <div class="mb-1.5 flex justify-between font-mono text-[10px]">
                                     <span class="text-emerald-600">{{ $votesOption2 }} VOTES</span>
