@@ -250,7 +250,9 @@ new #[Layout('layouts::game')] class extends Component {
     }"
 >
     {{-- Top bar --}}
-    <header class="flex shrink-0 items-center justify-between border-b border-zinc-200 bg-white px-3 py-2 sm:px-6 sm:py-3 dark:border-zinc-800 dark:bg-zinc-900">
+    <header
+        class="flex shrink-0 items-center justify-between border-b border-zinc-200 bg-white px-3 py-2 sm:px-6 sm:py-3 dark:border-zinc-800 dark:bg-zinc-900"
+    >
         <div class="flex min-w-0 items-center gap-2 sm:gap-4">
             <span class="hidden font-mono text-xs font-bold tracking-[0.2em] text-zinc-700 sm:inline dark:text-zinc-300">WYRD</span>
             @if ($questionId)
@@ -283,7 +285,7 @@ new #[Layout('layouts::game')] class extends Component {
 
             <div class="flex items-center gap-1.5">
                 <span class="size-1.5 animate-pulse rounded-full bg-emerald-500"></span>
-                <span class="font-mono text-xs tabular-nums text-zinc-700 dark:text-zinc-300">{{ $viewerCount }}</span>
+                <span class="font-mono text-xs text-zinc-700 tabular-nums dark:text-zinc-300">{{ $viewerCount }}</span>
                 <span class="hidden font-mono text-xs tracking-widest text-zinc-400 sm:inline dark:text-zinc-500">WATCHING</span>
             </div>
         </div>
@@ -358,7 +360,9 @@ new #[Layout('layouts::game')] class extends Component {
                             ])
                         >
                             <p class="mb-2 font-mono text-[10px] tracking-[0.2em] text-emerald-600 sm:mb-3">B</p>
-                            <p class="mb-4 text-base leading-snug font-semibold text-zinc-900 sm:mb-6 sm:text-xl dark:text-zinc-100">&ldquo;{{ $option2 }}&rdquo;</p>
+                            <p class="mb-4 text-base leading-snug font-semibold text-zinc-900 sm:mb-6 sm:text-xl dark:text-zinc-100">
+                                &ldquo;{{ $option2 }}&rdquo;
+                            </p>
                             <div>
                                 <div class="mb-1.5 flex justify-between font-mono text-[10px]">
                                     <span class="text-emerald-600">{{ $votesOption2 }} VOTES</span>
