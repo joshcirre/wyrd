@@ -10,6 +10,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.4",
+        "aws/aws-sdk-php": "^3.382",
         "laravel/framework": "^13.0",
         "laravel/prompts": "^0.3",
         "laravel/reverb": "^1.0",
